@@ -32,13 +32,23 @@ def get_schedule_on_week(group):
     )
 
 
-@application.route('/api/v1/schedule/<string:group>/<int:week_number>', methods=["GET"])
+@application.route('/api/v1/schedule/<string:group>/<string:week_number>', methods=["GET"])
 def get_schedule_of_week_number(group, week_number):
     even_schedule, odd_schedule = get_schedule_json(group)
-    if week_number % 2 == 0:
+    if week_number.isdigit():
+        if int(week_number) % 2 == 0:
+            response_data = {"even_week": even_schedule}
+        else:
+            response_data = {"odd_week": odd_schedule}
+    elif week_number == "even":
         response_data = {"even_week": even_schedule}
-    else:
+    elif week_number == "odd":
         response_data = {"odd_week": odd_schedule}
+    else:
+        return Response(
+            response="Week not Found",
+            status=404,
+        )
     return Response(
         response=json.dumps({"schedule": response_data}, ensure_ascii=False),
         status=200,
