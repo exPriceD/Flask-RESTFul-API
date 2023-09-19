@@ -28,7 +28,7 @@ def get_schedule_on_week(group: str):
             )
         response_data[group] = {"even_week": even_schedule, "odd_week": odd_schedule}
     return Response(
-        response=json.dumps({"schedule": response_data}, ensure_ascii=False),
+        response=json.dumps({response_data}, ensure_ascii=False),
         status=200,
         mimetype='application/json',
     )
@@ -52,11 +52,33 @@ def get_schedule_of_week_number(group: str, week_number: str):
             status=404,
         )
     return Response(
-        response=json.dumps({"schedule": response_data}, ensure_ascii=False),
+        response=json.dumps({response_data}, ensure_ascii=False),
         status=200,
         mimetype='application/json',
     )
 
+
+@application.route('/api/v1/personalities', methods=["GET"])
+def get_person():
+    with open(f"{os.getcwd()}\\personalities\\personalities.json", "r") as persons:
+        personalities = json.load(persons)
+    return Response(response=json.dumps(personalities, ensure_ascii=False), status=200, mimetype='application/json')
+
+
+@application.route('/api/v1/personalities/<int:person_id>', methods=["GET"])
+def get_person_by_id(person_id):
+    with open(f"{os.getcwd()}\\personalities\\personalities.json", "r") as persons:
+        personalities = json.load(persons)
+    is_found = False
+    search_person = {}
+    for i, person in enumerate(personalities["data"], start=0):
+        if int(person["id"]) == person_id:
+            search_person = person
+            is_found = True
+            break
+    if not is_found:
+        return Response(response={"status": "500", "reason": "Пользователь не найден"}, status=500, mimetype='application/json')
+    return Response(response=json.dumps(search_person, ensure_ascii=False), status=200, mimetype='application/json')
 
 @application.route('/api/v1/personalities', methods=["POST"])
 def add_person():
@@ -68,27 +90,35 @@ def add_person():
     personalities["data"].append(value)
     with open(f"{os.getcwd()}\\personalities\\personalities.json", "w") as persons:
         json.dump(personalities, persons, indent=4, ensure_ascii=False)
-    return Response(response=json.dumps(value), status=200)
+    return Response(response=json.dumps(value, ensure_ascii=False), status=200, mimetype='application/json')
 
 
 @application.route('/api/v1/personalities/<int:person_id>', methods=["PUT"])
 def edit_person(person_id):
     value = request.json
     if not all(key in value.keys() for key in PERSONALITIES_KEYS):
-        return Response(response=json.dumps({"status": 500, "reason": "Поля заполнены некорректно"}), status=500)
+        return Response(
+            response=json.dumps({"status": 500, "reason": "Поля заполнены некорректно"}),
+            status=500,
+            mimetype='application/json'
+        )
     with open(f"{os.getcwd()}\\personalities\\personalities.json", "r") as persons:
         personalities = json.load(persons)
     is_found = False
     for i, person in enumerate(personalities["data"], start=0):
-        if person["id"] == person_id:
+        if int(person["id"]) == person_id:
             personalities["data"][i] = value
             is_found = True
             break
     if not is_found:
-        return Response(response={"status": 500, "reason": "Пользователь не найден"}, status=500)
+        return Response(
+            response=json.dumps({"status": "500", "reason": "Пользователь не найден"}),
+            status=500,
+            mimetype='application/json'
+        )
     with open(f"{os.getcwd()}\\personalities\\personalities.json", "w") as persons:
         json.dump(personalities, persons, indent=4, ensure_ascii=False)
-    return Response(response=json.dumps(value), status=200)
+    return Response(response=json.dumps(value, ensure_ascii=False), status=200, mimetype='application/json')
 
 
 def get_schedule_json(group_name: str) -> tp.Tuple:
