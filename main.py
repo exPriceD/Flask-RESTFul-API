@@ -28,6 +28,21 @@ def get_schedule_on_week():
     return Response(response=json.dumps(response_data, ensure_ascii=False), status=200, mimetype='application/json')
 
 
+@application.route('/api/v1/schedule/id/<int:id>', methods=["GET"])
+def get_schedule_by_id(id):
+    lesson = Lessons.query.filter_by(id=id).first()
+    if not lesson:
+        return Response(response="Not Found", status=404)
+    lesson_data = get_lessons_data(lesson=lesson)
+    if lesson.even_week:
+        response_data = {"data": {lesson.group: {"even_week": {lesson.day: []}}}}
+        response_data["data"][lesson.group]["even_week"][lesson.day].append(lesson_data)
+    else:
+        response_data = {"data": {lesson.group: {"odd_week": {lesson.day: []}}}}
+        response_data["data"][lesson.group]["odd_week"][lesson.day].append(lesson_data)
+    return Response(response=json.dumps(response_data, ensure_ascii=False), status=200, mimetype='application/json')
+
+
 @application.route('/api/v1/schedule/<string:group>', methods=["GET"])
 def get_schedule_for_group(group: str):
     group = group.upper()
@@ -71,10 +86,7 @@ def get_schedule_on_day(group: str, week_number: str, day: str):
     if errors:
         resp = {"status": 500, "reason": "Некорректно заполненое поле WEEK"}
         return Response(response=json.dumps(resp, ensure_ascii=False), status=500, mimetype='application/json')
-    if not day.isdigit() and day not in WEEKDAY:
-        resp = {"status": 500, "reason": "Некорректно заполненое поле DAY"}
-        return Response(response=json.dumps(resp, ensure_ascii=False), status=500, mimetype='application/json')
-    if day.isdigit() and (int(day) < 1 or int(day) > 7):
+    if not check_day(day):
         resp = {"status": 500, "reason": "Некорректно заполненое поле DAY"}
         return Response(response=json.dumps(resp, ensure_ascii=False), status=500, mimetype='application/json')
     if day.isdigit():
@@ -87,6 +99,27 @@ def get_schedule_on_day(group: str, week_number: str, day: str):
         lesson_data = get_lessons_data(lesson)
         response_data["data"][group][key][day].append(lesson_data)
     return Response(response=json.dumps(response_data, ensure_ascii=False), status=200, mimetype='application/json')
+
+
+@application.route('/api/v1/schedule/id/<int:id>', methods=["PUT"])
+def update_group_schedule(id):
+    value = request.json
+    lesson = Lessons.query.filter_by(id=id).first()
+    if not lesson:
+        return Response("Not Found", status=404)
+    lesson.group = value["group"]
+    lesson.day = value["day"].lower()
+    lesson.even_week = value["even_week"]
+    lesson.subject = value["subject"]
+    lesson.type = value["type"]
+    lesson.time_start = value["time_start"]
+    lesson.time_end = value["time_end"]
+    lesson.teacher_name = value["teacher_name"]
+    lesson.room = value["room"]
+    lesson.address = value["address"]
+    lesson.zoom_url = value["zoom_url"]
+    db.session.commit()
+    return Response(response=json.dumps(value, ensure_ascii=False), status=200, mimetype='application/json')
 
 
 @application.route('/api/v1/personalities', methods=["GET"])
@@ -184,6 +217,14 @@ def check_week(week_number):
     else:
         is_even, key = (1, "even_week") if week_number == "EVEN" else (0, "odd_week")
     return is_even, key, False
+
+
+def check_day(day):
+    if not day.isdigit() and day not in WEEKDAY:
+        return False
+    if day.isdigit() and (int(day) < 1 or int(day) > 7):
+        return False
+    return True
 
 
 if __name__ == "__main__":
