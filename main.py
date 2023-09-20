@@ -6,43 +6,43 @@ import json
 import os
 import typing as tp
 
-PERSONALITIES_KEYS = ("id", "fio", "gender", "phone", "email", "work", "education", "photo")
+PERSONALITIES_KEYS = ("id", "fio", "gender", "phone", "email", "work", "education")
+WEEKDAY = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 
 
-@application.route('/api/v1/schedule', defaults={'group': None}, methods=["GET"])
-@application.route('/api/v1/schedule/<string:group>', methods=["GET"])
-def get_schedule_on_week(group: str):
-    response_data = {"data": []}
-    if not group:
-        groups = Groups.query.all()
-        print(groups)
-        for group_name in groups:
-            lessons_list = []
-            lessons = Lessons.query.filter_by(group=group_name.name).all()
-            for lesson in lessons:
-                lesson_data = {
-                    "id": lesson.id,
-                    "day": lesson.day,
-                    "even_week": lesson.even_week,
-                    "subject": lesson.subject,
-                    "type": lesson.type,
-                    "time_start": lesson.time_start,
-                    "time_end": lesson.time_end,
-                    "teacher_name": lesson.teacher_name,
-                    "room": lesson.room,
-                    "address": lesson.address,
-                    "zoom_url": lesson.zoom_url
-                }
-                lessons_list.append(lesson_data)
-            response_data["data"].append({group_name.name: lessons_list})
-    else:
-        try:
-            even_schedule, odd_schedule = get_schedule_json(group)
-        except OSError:
-            return Response(response="Not Found", status=404)
-        response_data[group] = {"even_week": even_schedule, "odd_week": odd_schedule}
+@application.route('/api/v1/schedule', methods=["GET"])
+def get_schedule_on_week():
+    groups = Groups.query.all()
+    response_data = {
+        "data": {group.name: {"even_week": {day: [] for day in WEEKDAY},
+                              "odd_week": {day: [] for day in WEEKDAY}} for group in groups}}
     print(response_data)
-    return Response(response=json.dumps(response_data, ensure_ascii=False), status=200, mimetype='application/json',)
+    lessons = Lessons.query.all()
+    for lesson in lessons:
+        lesson_data = get_lessons_data(lesson)
+        if lesson.even_week:
+            response_data["data"][lesson.group]["even_week"][lesson.day].append(lesson_data)
+        else:
+            response_data["data"][lesson.group]["odd_week"][lesson.day].append(lesson_data)
+    return Response(response=json.dumps(response_data, ensure_ascii=False), status=200, mimetype='application/json')
+
+
+@application.route('/api/v1/schedule/<string:group>', methods=["GET"])
+def get_schedule_for_group(group: str):
+    group = group.upper()
+    lessons = Lessons.query.filter_by(group=group).all()
+    if not lessons:
+        return Response(response="Not Found", status=404)
+    response_data = {"data":
+                         {group: {"even_week": {day: [] for day in WEEKDAY}, "odd_week": {day: [] for day in WEEKDAY}}}
+                     }
+    for lesson in lessons:
+        lesson_data = get_lessons_data(lesson)
+        if lesson.even_week:
+            response_data["data"][group]["even_week"][lesson.day].append(lesson_data)
+        else:
+            response_data["data"][group]["odd_week"][lesson.day].append(lesson_data)
+    return Response(response=json.dumps(response_data, ensure_ascii=False), status=200, mimetype='application/json')
 
 
 @application.route('/api/v1/schedule/<string:group>/<string:week_number>', methods=["GET"])
@@ -55,7 +55,7 @@ def get_schedule_of_week_number(group: str, week_number: str):
     elif week_number == "odd":
         response_data = {"odd_week": odd_schedule}
     else:
-        return Response(response="Week not Found", status=404,)
+        return Response(response="Week not Found", status=404, )
     return Response(response=json.dumps({response_data}, ensure_ascii=False), status=200, mimetype='application/json')
 
 
@@ -81,6 +81,7 @@ def get_person_by_id(person_id: int):
         resp = {"status": "500", "reason": "Пользователь не найден"}
         return Response(response=json.dumps(resp, ensure_ascii=False), status=500, mimetype='application/json')
     return Response(response=json.dumps(search_person, ensure_ascii=False), status=200, mimetype='application/json')
+
 
 @application.route('/api/v1/personalities', methods=["POST"])
 def add_person():
@@ -124,6 +125,23 @@ def get_schedule_json(group_name: str) -> tp.Tuple:
         odd_schedule = json.load(schedule_json)
     return even_schedule, odd_schedule
 
+
+def get_lessons_data(lesson):
+    lesson_data = {
+        "id": lesson.id,
+        "group": lesson.group,
+        "day": lesson.day,
+        "even_week": lesson.even_week,
+        "subject": lesson.subject,
+        "type": lesson.type,
+        "time_start": lesson.time_start,
+        "time_end": lesson.time_end,
+        "teacher_name": lesson.teacher_name,
+        "room": lesson.room,
+        "address": lesson.address,
+        "zoom_url": lesson.zoom_url
+    }
+    return lesson_data
 
 if __name__ == "__main__":
     application.debug = True
