@@ -2,12 +2,13 @@ from flask import request, Response
 from validate_email import validate_email
 from config import application, db
 from models import Lessons, Personalities, Groups
+from sqlalchemy import and_
 import json
 import os
 import typing as tp
 
 PERSONALITIES_KEYS = ("id", "fio", "gender", "phone", "email", "work", "education")
-WEEKDAY = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+WEEKDAY = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
 
 
 @application.route('/api/v1/schedule', methods=["GET"])
@@ -47,16 +48,45 @@ def get_schedule_for_group(group: str):
 
 @application.route('/api/v1/schedule/<string:group>/<string:week_number>', methods=["GET"])
 def get_schedule_of_week_number(group: str, week_number: str):
-    even_schedule, odd_schedule = get_schedule_json(group)
-    if week_number.isdigit():
-        response_data = {"even_week": even_schedule} if int(week_number) % 2 == 0 else {"odd_week": odd_schedule}
-    elif week_number == "even":
-        response_data = {"even_week": even_schedule}
-    elif week_number == "odd":
-        response_data = {"odd_week": odd_schedule}
-    else:
-        return Response(response="Week not Found", status=404, )
-    return Response(response=json.dumps({response_data}, ensure_ascii=False), status=200, mimetype='application/json')
+    group = group.upper()
+    week_number = week_number.upper()
+    is_even, key, errors = check_week(week_number)
+    if errors:
+        resp = {"status": 500, "reason": "Некорректно заполненое поле WEEK"}
+        return Response(response=json.dumps(resp, ensure_ascii=False), status=500, mimetype='application/json')
+    response_data = {"data": {group: {key: {day: [] for day in WEEKDAY}}}}
+    lessons = Lessons.query.filter(and_(Lessons.group == group, Lessons.even_week == is_even)).all()
+    for lesson in lessons:
+        lesson_data = get_lessons_data(lesson)
+        response_data["data"][group][key][lesson.day].append(lesson_data)
+    return Response(response=json.dumps(response_data, ensure_ascii=False), status=200, mimetype='application/json')
+
+
+@application.route('/api/v1/schedule/<string:group>/<string:week_number>/<string:day>', methods=["GET"])
+def get_schedule_on_day(group: str, week_number: str, day: str):
+    group = group.upper()
+    week_number = week_number.upper()
+    day = day.lower()
+    is_even, key, errors = check_week(week_number)
+    if errors:
+        resp = {"status": 500, "reason": "Некорректно заполненое поле WEEK"}
+        return Response(response=json.dumps(resp, ensure_ascii=False), status=500, mimetype='application/json')
+    if not day.isdigit() and day not in WEEKDAY:
+        resp = {"status": 500, "reason": "Некорректно заполненое поле DAY"}
+        return Response(response=json.dumps(resp, ensure_ascii=False), status=500, mimetype='application/json')
+    if day.isdigit() and (int(day) < 1 or int(day) > 7):
+        resp = {"status": 500, "reason": "Некорректно заполненое поле DAY"}
+        return Response(response=json.dumps(resp, ensure_ascii=False), status=500, mimetype='application/json')
+    if day.isdigit():
+        day = WEEKDAY[int(day)-1]
+    response_data = {"data": {group: {key: {day: []}}}}
+    lessons = Lessons.query.filter(and_(Lessons.group == group, Lessons.even_week == is_even, Lessons.day == day)).all()
+    if not lessons:
+        return Response(response="Not Found", status=404)
+    for lesson in lessons:
+        lesson_data = get_lessons_data(lesson)
+        response_data["data"][group][key][day].append(lesson_data)
+    return Response(response=json.dumps(response_data, ensure_ascii=False), status=200, mimetype='application/json')
 
 
 @application.route('/api/v1/personalities', methods=["GET"])
@@ -142,6 +172,19 @@ def get_lessons_data(lesson):
         "zoom_url": lesson.zoom_url
     }
     return lesson_data
+
+
+def check_week(week_number):
+    if not week_number.isdigit() and week_number != "EVEN" and week_number != "ODD":
+        return None, None, True
+    if week_number.isdigit():
+        if int(week_number) < 1 or int(week_number) > 7:
+            return None, None, True
+        is_even, key = (1, "even_week") if int(week_number) % 2 == 0 else (0, "odd_week")
+    else:
+        is_even, key = (1, "even_week") if week_number == "EVEN" else (0, "odd_week")
+    return is_even, key, False
+
 
 if __name__ == "__main__":
     application.debug = True
