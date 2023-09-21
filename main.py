@@ -20,6 +20,7 @@ SCHEDULE_LENGTH = {
     "time_end": 5, "teacher_name": 128, "room": 32, "address": 512, "zoom_url": 1024
 }
 
+
 @application.route('/api/v1/schedule', methods=["GET"])
 def get_schedule_on_week() -> Response:
     groups = Groups.query.all()
@@ -81,8 +82,8 @@ def get_schedule_of_week_number(group: str, week_number: str) -> Response:
     week_number = week_number.upper()
     is_even, key, errors = check_week(week_number)
     if errors:
-        resp = {"status": 500, "reason": "Некорректно заполненое поле WEEK"}
-        return Response(response=json.dumps(resp, ensure_ascii=False), status=500, mimetype='application/json')
+        resp = {"status": 400, "reason": "Некорректно заполненое поле WEEK"}
+        return Response(response=json.dumps(resp, ensure_ascii=False), status=400, mimetype='application/json')
     response_data = {"data": {group: {key: {day: [] for day in WEEKDAY}}}}
     lessons = Lessons.query.filter(and_(Lessons.group == group, Lessons.even_week == is_even)).all()
     for lesson in lessons:
@@ -98,11 +99,11 @@ def get_schedule_on_day(group: str, week_number: str, day: str) -> Response:
     day = day.lower()
     is_even, key, errors = check_week(week_number)
     if errors:
-        resp = {"status": 500, "reason": "Некорректно заполненое поле WEEK"}
-        return Response(response=json.dumps(resp, ensure_ascii=False), status=500, mimetype='application/json')
+        resp = {"status": 400, "reason": "Некорректно заполненое поле WEEK"}
+        return Response(response=json.dumps(resp, ensure_ascii=False), status=400, mimetype='application/json')
     if not check_day(day):
-        resp = {"status": 500, "reason": "Некорректно заполненое поле DAY"}
-        return Response(response=json.dumps(resp, ensure_ascii=False), status=500, mimetype='application/json')
+        resp = {"status": 400, "reason": "Некорректно заполненое поле DAY"}
+        return Response(response=json.dumps(resp, ensure_ascii=False), status=400, mimetype='application/json')
     if day.isdigit():
         day = WEEKDAY[int(day)-1]
     response_data = {"data": {group: {key: {day: []}}}}
@@ -119,12 +120,12 @@ def get_schedule_on_day(group: str, week_number: str, day: str) -> Response:
 def update_group_schedule(id) -> Response:
     value = request.json
     if not all(key in value.keys() for key in SCHEDULE_KEYS):
-        resp = {"status": 500, "reason": "Поля заполнены некорректно"}
-        return Response(response=json.dumps(resp, ensure_ascii=False), status=500)
+        resp = {"status": 400, "reason": "Поля заполнены некорректно"}
+        return Response(response=json.dumps(resp, ensure_ascii=False), status=400)
     for key in value.keys():
         if len(value[key]) > SCHEDULE_KEYS[key]:
-            resp = {"status": 500, "reason": "Поля заполнены некорректно"}
-            return Response(response=json.dumps(resp, ensure_ascii=False), status=500)
+            resp = {"status": 400, "reason": f"Поле {key} превышает максимально возможную длину строки"}
+            return Response(response=json.dumps(resp, ensure_ascii=False), status=400)
     lesson = Lessons.query.filter_by(id=id).first()
     if not lesson:
         return Response("Not Found", status=404)
@@ -142,7 +143,7 @@ def update_group_schedule(id) -> Response:
         lesson.zoom_url = value["zoom_url"]
         db.session.commit()
     except Exception:
-        resp = {"reason": "Непредвиденная ошибка при обновлении данных в БД"}
+        resp = {"status": 500, "reason": "Непредвиденная ошибка при обновлении данных в БД"}
         return Response(response=json.dumps(resp, ensure_ascii=False), status=500, mimetype='application/json')
     return Response(response=json.dumps(value, ensure_ascii=False), status=200, mimetype='application/json')
 
@@ -157,20 +158,20 @@ def get_person() -> Response:
     return Response(response=json.dumps(response_data, ensure_ascii=False), status=200, mimetype='application/json')
 
 
-@application.route('/api/v1/personalities/<string:attr>/<string:value>', methods=["GET"])
-def get_person_by_id(attr: str, value: str) -> Response:
+@application.route('/api/v1/personalities/<string:attr>/<string:attr_value>', methods=["GET"])
+def get_person_by_id(attr: str, attr_value: str) -> Response:
     if attr not in KEYS:
-        resp = {"status": "404", "reason": f"Атрибут {attr} не найден. Используйте атрибуты из списка {KEYS}"}
-        return Response(response=json.dumps(resp, ensure_ascii=False), status=404, mimetype="application/json")
+        resp = {"status": 400, "reason": f"Атрибут {attr} не найден. Используйте атрибуты из списка {KEYS}"}
+        return Response(response=json.dumps(resp, ensure_ascii=False), status=400, mimetype="application/json")
     if attr == "id":
-        person = Personalities.query.filter_by(id=int(value)).first()
+        person = Personalities.query.filter_by(id=int(attr_value)).first()
     elif attr == "email":
-        person = Personalities.query.filter_by(email=value).first()
+        person = Personalities.query.filter_by(email=attr_value).first()
     else:
-        person = Personalities.query.filter_by(phone=value).first()
+        person = Personalities.query.filter_by(phone=attr_value).first()
     if not person:
-        resp = {"status": "404", "reason": "Пользователь не найден"}
-        return Response(response=json.dumps(resp, ensure_ascii=False), status=500, mimetype='application/json')
+        resp = {"status": 404, "reason": "Пользователь не найден"}
+        return Response(response=json.dumps(resp, ensure_ascii=False), status=404, mimetype='application/json')
     person_data = get_person_data(person=person)
     response_data = {"data": {person.id: person_data}}
     return Response(response=json.dumps(response_data, ensure_ascii=False), status=200, mimetype='application/json')
@@ -180,10 +181,10 @@ def get_person_by_id(attr: str, value: str) -> Response:
 def add_person():
     value = request.json
     if not all(key in value.keys() for key in PERSONALITIES_KEYS):
-        resp = {"status": 500, "reason": "Поля заполнены некорректно"}
-        return Response(response=json.dumps(resp, ensure_ascii=False), status=500)
+        resp = {"status": 400, "reason": "Поля заполнены некорректно"}
+        return Response(response=json.dumps(resp, ensure_ascii=False), status=400)
     if not validate_email(value["email"]):
-        resp = {'status': 500, "reason": "Email not valid"}
+        resp = {'status': 400, "reason": "Email not valid"}
         return Response(response=json.dumps(resp, ensure_ascii=False), status=400, mimetype='application/json')
     person = Personalities(
         fio=value["fio"], gender=value["gender"], phone=value["phone"],
@@ -195,28 +196,28 @@ def add_person():
     return Response(response=json.dumps(value, ensure_ascii=False), status=200, mimetype='application/json')
 
 
-@application.route('/api/v1/personalities/<string:attr>/<string:value>', methods=["PUT"])
-def edit_person(attr: str, value: str) -> Response:
+@application.route('/api/v1/personalities/<string:attr>/<string:attr_value>', methods=["PUT"])
+def edit_person(attr: str, attr_value: str) -> Response:
     value = request.json
     if not all(attr in value.keys() for attr in PERSONALITIES_KEYS):
-        resp = {"status": 500, "reason": "Поля заполнены некорректно"}
-        return Response(response=json.dumps(resp, ensure_ascii=False), status=500, mimetype='application/json')
+        resp = {"status": 400, "reason": "Поля заполнены некорректно"}
+        return Response(response=json.dumps(resp, ensure_ascii=False), status=400, mimetype='application/json')
     for key in value.keys():
         if len(value[key]) > PERSONALITIES_LENGTH[key]:
-            resp = {"status": 500, "reason": f"Поле {key} превышает максимально возможную длину строки"}
-            return Response(response=json.dumps(resp, ensure_ascii=False), status=500, mimetype='application/json')
+            resp = {"status": 400, "reason": f"Поле {key} превышает максимально возможную длину строки"}
+            return Response(response=json.dumps(resp, ensure_ascii=False), status=400, mimetype='application/json')
     if attr not in KEYS:
-        resp = {"status": "404", "reason": f"Атрибут {attr} не найден. Используйте атрибуты из списка {KEYS}"}
-        return Response(response=json.dumps(resp, ensure_ascii=False), status=404, mimetype="application/json")
+        resp = {"status": 400, "reason": f"Атрибут {attr} не найден. Используйте атрибуты из списка {KEYS}"}
+        return Response(response=json.dumps(resp, ensure_ascii=False), status=400, mimetype="application/json")
     if attr == "id":
-        person = Personalities.query.filter_by(id=int(value)).first()
+        person = Personalities.query.filter_by(id=int(attr_value)).first()
     elif attr == "email":
-        person = Personalities.query.filter_by(email=value).first()
+        person = Personalities.query.filter_by(email=attr_value).first()
     else:
-        person = Personalities.query.filter_by(phone=value).first()
+        person = Personalities.query.filter_by(phone=attr_value).first()
     if not person:
-        resp = {"status": "500", "reason": "Пользователь не найден"}
-        return Response(response=json.dumps(resp, ensure_ascii=False), status=500, mimetype='application/json')
+        resp = {"status": 404, "reason": "Пользователь не найден"}
+        return Response(response=json.dumps(resp, ensure_ascii=False), status=404, mimetype='application/json')
     try:
         person.fio = value["fio"]
         person.gender = value["gender"]
@@ -226,7 +227,7 @@ def edit_person(attr: str, value: str) -> Response:
         person.education = value["education"]
         db.session.commit()
     except Exception:
-        resp = {"reason": "Непредвиденная ошибка при обновлении данных в БД"}
+        resp = {"status": 500, "reason": "Непредвиденная ошибка при обновлении данных в БД"}
         return Response(response=json.dumps(resp, ensure_ascii=False), status=500, mimetype='application/json')
     return Response(response=json.dumps(value, ensure_ascii=False), status=200, mimetype='application/json')
 
