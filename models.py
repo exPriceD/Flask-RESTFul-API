@@ -22,7 +22,7 @@ class Personalities(db.Model):
     education = db.Column(db.String(512))
 
     def __repr__(self):
-        return f"<Person {self.id}"
+        return f"<Person {self.id}>"
 
 
 class Lessons(db.Model):
@@ -30,12 +30,12 @@ class Lessons(db.Model):
     group = db.Column(db.String(6))
     day = db.Column(db.String(16))
     even_week = db.Column(db.Boolean)
-    subject = db.Column(db.String(512))
-    type = db.Column(db.String(512))
+    subject = db.Column(db.String(64))
+    type = db.Column(db.String(32))
     time_start = db.Column(db.String(5))
     time_end = db.Column(db.String(5))
-    teacher_name = db.Column(db.String(512))
-    room = db.Column(db.String(512))
+    teacher_name = db.Column(db.String(128))
+    room = db.Column(db.String(32))
     address = db.Column(db.String(512))
     zoom_url = db.Column(db.String(1024))
 
