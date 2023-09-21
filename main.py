@@ -11,19 +11,13 @@ PERSONALITIES_KEYS = ["fio", "gender", "phone", "email", "work", "education"]
 WEEKDAY = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
 KEYS = ['id', 'email', 'phone']
 PERSONALITIES_LENGTH = {"fio": 256, "gender": 6, "phone": 32, "email": 256, "work": 512, "education": 512}
-SCHEDULE_KEYS = ["group", "day", "even_week", "subject", "type", "time_start", "time_end", "teacher_name", "room", "address", "zoom_url"]
+SCHEDULE_KEYS = [
+    "group", "day", "even_week", "subject", "type", "time_start",
+    "time_end", "teacher_name", "room", "address", "zoom_url"
+]
 SCHEDULE_LENGTH = {
-    "group": 6,
-    "day": 16,
-    "even_week": 1,
-    "subject": 64,
-    "type": 32,
-    "time_start": 5,
-    "time_end": 5,
-    "teacher_name": 128,
-    "room": 32,
-    "address": 512,
-    "zoom_url": 1024
+    "group": 6, "day": 16, "even_week": 1, "subject": 64, "type": 32, "time_start": 5,
+    "time_end": 5, "teacher_name": 128, "room": 32, "address": 512, "zoom_url": 1024
 }
 
 @application.route('/api/v1/schedule', methods=["GET"])
@@ -148,7 +142,7 @@ def update_group_schedule(id) -> Response:
         lesson.zoom_url = value["zoom_url"]
         db.session.commit()
     except Exception:
-        resp = {"reason": "Непредвиденная ошибка"}
+        resp = {"reason": "Непредвиденная ошибка при обновлении данных в БД"}
         return Response(response=json.dumps(resp, ensure_ascii=False), status=500, mimetype='application/json')
     return Response(response=json.dumps(value, ensure_ascii=False), status=200, mimetype='application/json')
 
@@ -163,14 +157,14 @@ def get_person() -> Response:
     return Response(response=json.dumps(response_data, ensure_ascii=False), status=200, mimetype='application/json')
 
 
-@application.route('/api/v1/personalities/<string:key>/<string:value>', methods=["GET"])
-def get_person_by_id(key: str, value: str) -> Response:
-    if key not in KEYS:
-        resp = {"status": "404", "reason": f"Атрибут {key} не найден. Используйте атрибуты из списка {KEYS}"}
+@application.route('/api/v1/personalities/<string:attr>/<string:value>', methods=["GET"])
+def get_person_by_id(attr: str, value: str) -> Response:
+    if attr not in KEYS:
+        resp = {"status": "404", "reason": f"Атрибут {attr} не найден. Используйте атрибуты из списка {KEYS}"}
         return Response(response=json.dumps(resp, ensure_ascii=False), status=404, mimetype="application/json")
-    if key == "id":
+    if attr == "id":
         person = Personalities.query.filter_by(id=int(value)).first()
-    elif key == "email":
+    elif attr == "email":
         person = Personalities.query.filter_by(email=value).first()
     else:
         person = Personalities.query.filter_by(phone=value).first()
@@ -201,17 +195,25 @@ def add_person():
     return Response(response=json.dumps(value, ensure_ascii=False), status=200, mimetype='application/json')
 
 
-@application.route('/api/v1/personalities/<int:person_id>', methods=["PUT"])
-def edit_person(person_id: int) -> Response:
+@application.route('/api/v1/personalities/<string:attr>/<string:value>', methods=["PUT"])
+def edit_person(attr: str, value: str) -> Response:
     value = request.json
-    if not all(key in value.keys() for key in PERSONALITIES_KEYS):
+    if not all(attr in value.keys() for attr in PERSONALITIES_KEYS):
         resp = {"status": 500, "reason": "Поля заполнены некорректно"}
         return Response(response=json.dumps(resp, ensure_ascii=False), status=500, mimetype='application/json')
     for key in value.keys():
         if len(value[key]) > PERSONALITIES_LENGTH[key]:
             resp = {"status": 500, "reason": f"Поле {key} превышает максимально возможную длину строки"}
             return Response(response=json.dumps(resp, ensure_ascii=False), status=500, mimetype='application/json')
-    person = Personalities.query.filter_by(id=person_id)
+    if attr not in KEYS:
+        resp = {"status": "404", "reason": f"Атрибут {attr} не найден. Используйте атрибуты из списка {KEYS}"}
+        return Response(response=json.dumps(resp, ensure_ascii=False), status=404, mimetype="application/json")
+    if attr == "id":
+        person = Personalities.query.filter_by(id=int(value)).first()
+    elif attr == "email":
+        person = Personalities.query.filter_by(email=value).first()
+    else:
+        person = Personalities.query.filter_by(phone=value).first()
     if not person:
         resp = {"status": "500", "reason": "Пользователь не найден"}
         return Response(response=json.dumps(resp, ensure_ascii=False), status=500, mimetype='application/json')
@@ -224,17 +226,9 @@ def edit_person(person_id: int) -> Response:
         person.education = value["education"]
         db.session.commit()
     except Exception:
-        resp = {"reason": "Непредвиденная ошибка"}
+        resp = {"reason": "Непредвиденная ошибка при обновлении данных в БД"}
         return Response(response=json.dumps(resp, ensure_ascii=False), status=500, mimetype='application/json')
     return Response(response=json.dumps(value, ensure_ascii=False), status=200, mimetype='application/json')
-
-
-def get_schedule_json(group_name: str) -> tp.Tuple:
-    with open(f"{os.getcwd()}\\groups\\{group_name}\\even_week.json", encoding='utf-8') as schedule_json:
-        even_schedule = json.load(schedule_json)
-    with open(f"{os.getcwd()}\\groups\\{group_name}\\odd_week.json", encoding='utf-8') as schedule_json:
-        odd_schedule = json.load(schedule_json)
-    return even_schedule, odd_schedule
 
 
 def get_lessons_data(lesson):
