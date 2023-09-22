@@ -284,7 +284,7 @@ def edit_person(attr: str, attr_value: str) -> Response:
 
 
 @application.route('/api/v1/personalities/<int:id>/', methods=["DELETE"])
-def del_person(id):
+def del_person(id: int) -> Response:
     person = Personalities.query.filter_by(id=id).first()
     if not person:
         resp = {"status": 404, "reason": "Пользователь не найден"}
@@ -295,7 +295,7 @@ def del_person(id):
 
 
 @application.route('/api/v1/groups/', methods=["GET"])
-def get_groups():
+def get_groups() -> Response:
     groups = Groups.query.all()
     response_data = {"data": {}}
     for group in groups:
@@ -305,7 +305,7 @@ def get_groups():
 
 
 @application.route('/api/v1/groups/<string:attr>/<string:attr_value>', methods=["GET"])
-def get_groups_by_id(attr, attr_value):
+def get_groups_by_id(attr: str, attr_value: str) -> Response:
     if attr == 'id' or attr == 'ID':
         group = Groups.query.filter_by(id=int(attr_value)).first()
     elif attr == 'name' or attr == 'NAME':
@@ -322,7 +322,7 @@ def get_groups_by_id(attr, attr_value):
 
 
 @application.route('/api/v1/groups/', methods=["POST"])
-def add_group():
+def add_group() -> Response:
     value = request.json
     request_keys = value.keys()
     if not all(key in request_keys for key in GROUPS_KEYS.keys()):
@@ -344,7 +344,7 @@ def add_group():
 
 
 @application.route('/api/v1/groups/<string:attr>/<string:attr_value>', methods=["PUT"])
-def update_group(attr, attr_value):
+def update_group(attr: str, attr_value: str) -> Response:
     value = request.json
     request_keys = value.keys()
     if attr == 'id' or attr == 'ID':
@@ -380,6 +380,18 @@ def update_group(attr, attr_value):
         return Response(response=json.dumps(resp, ensure_ascii=False), status=500, mimetype='application/json')
     person_data = get_group_data(group)
     return Response(response=json.dumps(person_data, ensure_ascii=False), status=200, mimetype='application/json')
+
+
+@application.route('/api/v1/groups/<int:id>/', methods=["DELETE"])
+def del_group(id: int):
+    group = Groups.query.filter_by(id=id).first()
+    if not group:
+        resp = {"status": 404, "reason": "Группа не найдена"}
+        return Response(response=json.dumps(resp, ensure_ascii=False), status=404, mimetype='application/json')
+    Groups.query.filter_by(id=id).delete()
+    db.session.commit()
+    return Response(response="Accepted", status=202, mimetype='application/json')
+
 
 def get_lessons_data(lesson):
     lesson_data = {
