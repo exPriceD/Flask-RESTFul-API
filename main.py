@@ -281,6 +281,17 @@ def edit_person(attr: str, attr_value: str) -> Response:
     return Response(response=json.dumps(person_data, ensure_ascii=False), status=200, mimetype='application/json')
 
 
+@application.route('/api/v1/personalities/<int:id>/', methods=["DELETE"])
+def del_person(id):
+    person = Personalities.query.filter_by(id=id).first()
+    if not person:
+        resp = {"status": 404, "reason": "Пользователь не найден"}
+        return Response(response=json.dumps(resp, ensure_ascii=False), status=404, mimetype='application/json')
+    Personalities.query.filter_by(id=id).delete()
+    db.session.commit()
+    return Response(response="Accepted", status=202, mimetype='application/json')
+
+
 def get_lessons_data(lesson):
     lesson_data = {
         "id": lesson.id,
