@@ -292,6 +292,33 @@ def del_person(id):
     return Response(response="Accepted", status=202, mimetype='application/json')
 
 
+@application.route('/api/v1/groups/', methods=["GET"])
+def get_groups():
+    groups = Groups.query.all()
+    response_data = {"data": {}}
+    for group in groups:
+        group_data = get_group_data(group=group)
+        response_data["data"][group.name] = group_data
+    return Response(response=json.dumps(response_data, ensure_ascii=False), status=200, mimetype='application/json')
+
+
+@application.route('/api/v1/groups/<string:attr>/<string:attr_value>', methods=["GET"])
+def get_groups_by_id(attr, attr_value):
+    if attr == 'id' or attr == 'ID':
+        group = Groups.query.filter_by(id=int(attr_value)).first()
+    elif attr == 'name' or attr == 'NAME':
+        group = Groups.query.filter_by(name=attr_value.upper()).first()
+    else:
+        resp = {"status": 400, "reason": f"Атрибут {attr} не найден. Используйте атрибуты: ['id', 'name']"}
+        return Response(response=json.dumps(resp, ensure_ascii=False), status=400, mimetype='application/json')
+    if not group:
+        resp = {"status": 404, "reason": "Группа не найдена"}
+        return Response(response=json.dumps(resp, ensure_ascii=False), status=404, mimetype='application/json')
+    group_data = get_group_data(group=group)
+    response_data = {"data": {group.name: group_data}}
+    return Response(response=json.dumps(response_data, ensure_ascii=False), status=200, mimetype='application/json')
+
+
 def get_lessons_data(lesson):
     lesson_data = {
         "id": lesson.id,
@@ -321,6 +348,17 @@ def get_person_data(person):
         "education": person.education
     }
     return person_data
+
+
+def get_group_data(group):
+    group_data = {
+        "id": group.id,
+        "name": group.name,
+        "faculty": group.faculty,
+        "direction": group.direction,
+        "people_count": group.people_count
+    }
+    return group_data
 
 
 def check_week(week_number):
