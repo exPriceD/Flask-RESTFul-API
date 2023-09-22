@@ -123,7 +123,7 @@ def update_group_schedule(id) -> Response:
         resp = {"status": 400, "reason": "Поля заполнены некорректно"}
         return Response(response=json.dumps(resp, ensure_ascii=False), status=400)
     for key in value.keys():
-        if len(value[key]) > SCHEDULE_KEYS[key]:
+        if len(str(value[key])) > SCHEDULE_LENGTH[key]:
             resp = {"status": 400, "reason": f"Поле {key} превышает максимально возможную длину строки"}
             return Response(response=json.dumps(resp, ensure_ascii=False), status=400)
     lesson = Lessons.query.filter_by(id=id).first()
@@ -146,6 +146,45 @@ def update_group_schedule(id) -> Response:
         resp = {"status": 500, "reason": "Непредвиденная ошибка при обновлении данных в БД"}
         return Response(response=json.dumps(resp, ensure_ascii=False), status=500, mimetype='application/json')
     return Response(response=json.dumps(value, ensure_ascii=False), status=200, mimetype='application/json')
+
+
+@application.route('/api/v1/schedule/', methods=["POST"])
+def add_lessons():
+    value = request.json
+    if not all(key in value.keys() for key in SCHEDULE_KEYS):
+        resp = {"status": 400, "reason": "Поля заполнены некорректно"}
+        return Response(response=json.dumps(resp, ensure_ascii=False), status=400)
+    for key in value.keys():
+        if len(str(value[key])) > SCHEDULE_LENGTH[key]:
+            resp = {"status": 400, "reason": f"Поле {key} превышает максимально возможную длину строки"}
+            return Response(response=json.dumps(resp, ensure_ascii=False), status=400)
+    group = Groups.query.filter_by(name=value["group"]).first()
+    if not group:
+        resp = {"status": 404, "reason": f"Группа {value['group']} не найдена!"}
+        return Response(response=json.dumps(resp, ensure_ascii=False), status=404)
+    lessons = Lessons(
+        group=value["group"], day=value["day"], even_week=value["even_week"],
+        subject=value["subject"], type=value["type"], time_start=value["time_start"],
+        time_end=value["time_end"], teacher_name=value["teacher_name"],
+        room=value["room"], address=value["address"], zoom_url=value["zoom_url"]
+    )
+    db.session.add(lessons)
+    db.session.flush()
+    db.session.commit()
+    db.session.refresh(lessons)
+    current_req = Lessons.query.filter_by(id=lessons.id).first()
+    response_data = get_lessons_data(current_req)
+    return Response(response=json.dumps(response_data, ensure_ascii=False), status=200, mimetype="application/json")
+
+
+@application.route('/api/v1/schedule/id/<int:id>/', methods=["DELETE"])
+def del_schedule(id: int) -> Response:
+    lesson = Lessons.query.filter_by(id=id).first()
+    if not lesson:
+        return Response(response="Not Found", status=404)
+    Lessons.query.filter_by(id=id).delete()
+    db.session.commit()
+    return Response(response="Accepted", status=202, mimetype='application/json')
 
 
 @application.route('/api/v1/personalities/', methods=["GET"])
