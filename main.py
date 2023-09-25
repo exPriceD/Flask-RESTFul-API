@@ -35,9 +35,9 @@ def get_schedule_on_week() -> Response:
     for lesson in lessons:
         lesson_data = get_lessons_data(lesson)
         if lesson.even_week:
-            response_data["data"][lesson.group]["even_week"][lesson.day].append(lesson_data)
+            response_data["data"][lesson.group]["even_week"][lesson.day.lower()].append(lesson_data)
         else:
-            response_data["data"][lesson.group]["odd_week"][lesson.day].append(lesson_data)
+            response_data["data"][lesson.group]["odd_week"][lesson.day.lower()].append(lesson_data)
     return Response(response=json.dumps(response_data, ensure_ascii=False), status=200, mimetype='application/json')
 
 
@@ -163,7 +163,7 @@ def add_lessons():
         resp = {"status": 404, "reason": f"Группа {value['group']} не найдена!"}
         return Response(response=json.dumps(resp, ensure_ascii=False), status=404)
     lessons = Lessons(
-        group=value["group"], day=value["day"], even_week=value["even_week"],
+        group=value["group"], day=value["day"].lower(), even_week=value["even_week"],
         subject=value["subject"], type=value["type"], time_start=value["time_start"],
         time_end=value["time_end"], teacher_name=value["teacher_name"],
         room=value["room"], address=value["address"], zoom_url=value["zoom_url"]
