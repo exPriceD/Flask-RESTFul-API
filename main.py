@@ -4,7 +4,6 @@ from config import application, db
 from models import Lessons, Personalities, Groups
 from sqlalchemy import and_
 import json
-import os
 import typing as tp
 
 PERSONALITIES_KEYS = ["fio", "gender", "phone", "email", "work", "education"]
@@ -28,7 +27,7 @@ def get_schedule_on_week() -> Response:
     response_data = {
         "data": {
             group.name: {
-                "even_week": {day: [] for day in WEEKDAY},"odd_week": {day: [] for day in WEEKDAY}
+                "even_week": {day: [] for day in WEEKDAY}, "odd_week": {day: [] for day in WEEKDAY}
             } for group in groups
         }
     }
@@ -383,7 +382,7 @@ def update_group(attr: str, attr_value: str) -> Response:
 
 
 @application.route('/api/v1/groups/<int:id>/', methods=["DELETE"])
-def del_group(id: int):
+def del_group(id: int) -> Response:
     group = Groups.query.filter_by(id=id).first()
     if not group:
         resp = {"status": 404, "reason": "Группа не найдена"}
@@ -393,7 +392,7 @@ def del_group(id: int):
     return Response(response="Accepted", status=202, mimetype='application/json')
 
 
-def get_lessons_data(lesson):
+def get_lessons_data(lesson) -> dict:
     lesson_data = {
         "id": lesson.id,
         "group": lesson.group,
@@ -411,7 +410,7 @@ def get_lessons_data(lesson):
     return lesson_data
 
 
-def get_person_data(person):
+def get_person_data(person) -> dict:
     person_data = {
         "id": person.id,
         "fio": person.fio,
@@ -424,7 +423,7 @@ def get_person_data(person):
     return person_data
 
 
-def get_group_data(group):
+def get_group_data(group) -> dict:
     group_data = {
         "id": group.id,
         "name": group.name,
@@ -435,7 +434,7 @@ def get_group_data(group):
     return group_data
 
 
-def check_week(week_number):
+def check_week(week_number) -> tp.Tuple:
     if not week_number.isdigit() and week_number != "EVEN" and week_number != "ODD":
         return None, None, True
     if week_number.isdigit():
@@ -447,7 +446,7 @@ def check_week(week_number):
     return is_even, key, False
 
 
-def check_day(day):
+def check_day(day) -> bool:
     if not day.isdigit() and day not in WEEKDAY:
         return False
     if day.isdigit() and (int(day) < 1 or int(day) > 7):
