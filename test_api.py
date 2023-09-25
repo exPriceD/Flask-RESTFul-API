@@ -12,10 +12,10 @@ class TestAPI(unittest.TestCase):
 
     def test_get_full_schedule(self):
         resp = requests.get(self.SCHEDULE_URL)
-        with open('tests/get_full_schedule.json', 'r') as f:
+        with open('tests/get_full_schedule.json', 'r', encoding="utf8") as f:
             get_full_schedule_data = json.load(f)
         self.assertEquals(resp.status_code, 200)
-        self.assertDictEquals(resp.json(), get_full_schedule_data)
+        self.assertEquals(resp.json(), get_full_schedule_data)
         print("Test 1 completed")
 
 
