@@ -41,7 +41,7 @@ def get_schedule_by_id(id) -> Response:
     return Response(response=json.dumps(response_data, ensure_ascii=False), status=200, mimetype='application/json')
 
 
-@application.route('/api/v1/schedule/<string:group>/', methods=["GET"])
+@application.route('/api/v1/schedule/name/<string:group>/', methods=["GET"])
 def get_schedule_for_group(group: str) -> Response:
     group = group.upper()
     lessons = Lessons.query.filter_by(group=group).all()
@@ -61,7 +61,7 @@ def get_schedule_for_group(group: str) -> Response:
     return Response(response=json.dumps(response_data, ensure_ascii=False), status=200, mimetype='application/json')
 
 
-@application.route('/api/v1/schedule/<string:group>/<string:week_number>/', methods=["GET"])
+@application.route('/api/v1/schedule/name/<string:group>/<string:week_number>/', methods=["GET"])
 def get_schedule_of_week_number(group: str, week_number: str) -> Response:
     group = group.upper()
     week_number = week_number.upper()
@@ -77,7 +77,7 @@ def get_schedule_of_week_number(group: str, week_number: str) -> Response:
     return Response(response=json.dumps(response_data, ensure_ascii=False), status=200, mimetype='application/json')
 
 
-@application.route('/api/v1/schedule/<string:group>/<string:week_number>/<string:day>/', methods=["GET"])
+@application.route('/api/v1/schedule/name/<string:group>/<string:week_number>/<string:day>/', methods=["GET"])
 def get_schedule_on_day(group: str, week_number: str, day: str) -> Response:
     group = group.upper()
     week_number = week_number.upper()
