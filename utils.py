@@ -2,7 +2,7 @@ import typing as tp
 from config import WEEKDAY
 
 
-def get_lessons_data(lesson) -> dict:
+def get_lessons_data(lesson) -> tp.Dict:
     lesson_data = {
         "id": lesson.id,
         "group": lesson.group,
@@ -20,7 +20,7 @@ def get_lessons_data(lesson) -> dict:
     return lesson_data
 
 
-def get_person_data(person) -> dict:
+def get_person_data(person) -> tp.Dict:
     person_data = {
         "id": person.id,
         "fio": person.fio,
@@ -33,7 +33,7 @@ def get_person_data(person) -> dict:
     return person_data
 
 
-def get_group_data(group) -> dict:
+def get_group_data(group) -> tp.Dict:
     group_data = {
         "id": group.id,
         "name": group.name,
