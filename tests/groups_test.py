@@ -1,7 +1,6 @@
 import unittest
 import requests
-import json
-import os
+
 
 class TestGroupsAPI(unittest.TestCase):
     BASE_URL = "http://127.0.0.1:5000/api/v1/"
@@ -26,7 +25,7 @@ class TestGroupsAPI(unittest.TestCase):
 
     def test_get_group_by_name(self):
         res = requests.get(self.BASE_URL + "groups/name/K3140")
-        expected_data ={
+        expected_data = {
             "data": {
                 "K3140": {
                     "id": 1,
