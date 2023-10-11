@@ -36,7 +36,7 @@ def schedule_put():
         "day": "Friday",
         "even_week": 1,
         "subject": "Информатика",
-        "type": "Лекции",
+        "type": "Лекция",
         "time_start": "10:00",
         "time_end": "11:30",
         "teacher_name": "Добриборщ Дмитрий",
