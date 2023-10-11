@@ -169,7 +169,9 @@ def update_group_schedule(id) -> Response:
     except Exception:
         resp = {"status": 500, "reason": "Непредвиденная ошибка при обновлении данных в БД"}
         return Response(response=json.dumps(resp, ensure_ascii=False), status=500, mimetype='application/json')
-    return Response(response=json.dumps(value, ensure_ascii=False), status=200, mimetype='application/json')
+    lesson = Lessons.query.filter_by(id=id).first()
+    lesson_data = get_lessons_data(lesson=lesson)
+    return Response(response=json.dumps(lesson_data, ensure_ascii=False), status=200, mimetype='application/json')
 
 
 @application.route('/api/v1/schedule/', methods=["POST"])

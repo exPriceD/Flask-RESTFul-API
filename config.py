@@ -24,7 +24,7 @@ SCHEDULE_KEYS = [
     "time_end", "teacher_name", "room", "address", "zoom_url"
 ]
 SCHEDULE_LENGTH = {
-    "group": 6, "day": 16, "even_week": 1, "subject": 64, "type": 32, "time_start": 5,
+    "group": 6, "day": 16, "even_week": 5, "subject": 64, "type": 32, "time_start": 5,
     "time_end": 5, "teacher_name": 128, "room": 32, "address": 512, "zoom_url": 1024
 }
 GROUPS_KEYS = {"name": 6, "faculty": 512, "direction": 512, "people_count": 100000}
