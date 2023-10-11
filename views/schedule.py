@@ -105,10 +105,11 @@ def get_schedule_on_day(group: str, week_number: str, day: str) -> Response:
 @application.route('/api/v1/schedule/id/<int:id>/', methods=["PUT"])
 def update_group_schedule(id) -> Response:
     value = request.json
-    if not all(key in SCHEDULE_KEYS for key in value.keys()):
+    resp_keys = value.keys()
+    if not all(key in SCHEDULE_KEYS for key in resp_keys):
         resp = {"status": 400, "reason": "Поля заполнены некорректно"}
         return Response(response=json.dumps(resp, ensure_ascii=False), status=400)
-    for key in value.keys():
+    for key in resp_keys:
         if len(str(value[key])) > SCHEDULE_LENGTH[key]:
             resp = {"status": 400, "reason": f"Поле {key} превышает максимально возможную длину строки"}
             return Response(response=json.dumps(resp, ensure_ascii=False), status=400)
@@ -116,18 +117,18 @@ def update_group_schedule(id) -> Response:
     if not lesson:
         return Response("Not Found", status=404)
     try:
-        if "group" in value.keys():
+        if "group" in resp_keys:
             group = Groups.query.filter_by(name=value["group"]).first()
             if not group:
                 resp = {"status": 404, "reason": f"Группа {value['group']} не найдена"}
                 return Response(response=json.dumps(resp, ensure_ascii=False), status=400)
             lesson.group = value["group"]
-        if "day" in value.keys():
+        if "day" in resp_keys:
             if value["day"].lower() not in WEEKDAY:
                 resp = {"status": 400, "reason": f"Полe day заполнено некорректно. Используйте дни из набора {WEEKDAY}"}
                 return Response(response=json.dumps(resp, ensure_ascii=False), status=400)
             lesson.day = value["day"].lower()
-        if "even_week" in value.keys():
+        if "even_week" in resp_keys:
             if int(value["even_week"]) not in [0, 1, True, False]:
                 resp = {
                     "status": 400,
@@ -135,11 +136,11 @@ def update_group_schedule(id) -> Response:
                 }
                 return Response(response=json.dumps(resp, ensure_ascii=False), status=400)
             lesson.even_week = value["even_week"]
-        if "subject" in value.keys():
+        if "subject" in resp_keys:
             lesson.subject = value["subject"]
-        if "type" in value.keys():
+        if "type" in resp_keys:
             lesson.type = value["type"]
-        if "time_start" in value.keys():
+        if "time_start" in resp_keys:
             try:
                 if value["time_start"] != str(datetime.datetime.strptime(value["time_start"], "%H:%M"))[11:16]:
                     resp = {"status": 400, "reason": f"Полe time_start заполнено некорректно."}
@@ -148,7 +149,7 @@ def update_group_schedule(id) -> Response:
                 resp = {"status": 400, "reason": f"Полe time_start заполнено некорректно."}
                 return Response(response=json.dumps(resp, ensure_ascii=False), status=400)
             lesson.time_start = value["time_start"]
-        if "time_end" in value.keys():
+        if "time_end" in resp_keys:
             try:
                 if value["time_end"] != str(datetime.datetime.strptime(value["time_end"], "%H:%M"))[11:16]:
                     resp = {"status": 400, "reason": f"Полe time_end заполнено некорректно."}
@@ -157,13 +158,13 @@ def update_group_schedule(id) -> Response:
                 resp = {"status": 400, "reason": f"Полe time_end заполнено некорректно."}
                 return Response(response=json.dumps(resp, ensure_ascii=False), status=400)
             lesson.time_end = value["time_end"]
-        if "teacher_name" in value.keys():
+        if "teacher_name" in resp_keys:
             lesson.teacher_name = value["teacher_name"]
-        if "room" in value.keys():
+        if "room" in resp_keys:
             lesson.room = value["room"]
-        if "address" in value.keys():
+        if "address" in resp_keys:
             lesson.address = value["address"]
-        if "zoom_url" in value.keys():
+        if "zoom_url" in resp_keys:
             lesson.zoom_url = value["zoom_url"]
         db.session.commit()
     except Exception:
@@ -177,10 +178,11 @@ def update_group_schedule(id) -> Response:
 @application.route('/api/v1/schedule/', methods=["POST"])
 def add_lessons():
     value = request.json
-    if not all(key in value.keys() for key in SCHEDULE_KEYS):
+    resp_keys = value.keys()
+    if not all(key in resp_keys for key in SCHEDULE_KEYS):
         resp = {"status": 400, "reason": "Поля заполнены некорректно"}
         return Response(response=json.dumps(resp, ensure_ascii=False), status=400)
-    for key in value.keys():
+    for key in resp_keys:
         if len(str(value[key])) > SCHEDULE_LENGTH[key]:
             resp = {"status": 400, "reason": f"Поле {key} превышает максимально возможную длину строки"}
             return Response(response=json.dumps(resp, ensure_ascii=False), status=400)
@@ -233,4 +235,5 @@ def del_schedule(id: int) -> Response:
         return Response(response="Not Found", status=404)
     Lessons.query.filter_by(id=id).delete()
     db.session.commit()
-    return Response(response="Accepted", status=202, mimetype='application/json')
+    response_data = {"status": 202, "message": "Accepted"}
+    return Response(response=json.dumps(response_data, ensure_ascii=False), status=202, mimetype='application/json')

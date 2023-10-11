@@ -16,7 +16,7 @@ def get_groups() -> Response:
 
 
 @application.route('/api/v1/groups/<string:attr>/<string:attr_value>', methods=["GET"])
-def get_groups_by_id(attr: str, attr_value: str) -> Response:
+def get_group_by_attr(attr: str, attr_value: str) -> Response:
     if attr == 'id' or attr == 'ID':
         group = Groups.query.filter_by(id=int(attr_value)).first()
     elif attr == 'name' or attr == 'NAME':
@@ -43,6 +43,11 @@ def add_group() -> Response:
         if value[key] and (len(str(value[key])) > GROUPS_KEYS[key]):
             resp = {"status": 400, "reason": f"Поле {key} превышает максимально возможную длину строки"}
             return Response(response=json.dumps(resp, ensure_ascii=False), status=400, mimetype='application/json')
+    already_exists = Groups.query.filter_by(name=value["name"]).first()
+    if already_exists:
+        print(already_exists)
+        resp = {"status": 400, "reason": f"Группа {value['name']} уже существует"}
+        return Response(response=json.dumps(resp, ensure_ascii=False), status=400, mimetype='application/json')
     group = Groups(name=value["name"], faculty=value["faculty"],
                    direction=value["direction"], people_count=value["people_count"])
     db.session.add(group)
@@ -56,7 +61,7 @@ def add_group() -> Response:
 @application.route('/api/v1/groups/<string:attr>/<string:attr_value>', methods=["PUT"])
 def update_group(attr: str, attr_value: str) -> Response:
     value = request.json
-    request_keys = value.keys()
+    resp_keys = value.keys()
     if attr == 'id' or attr == 'ID':
         group = Groups.query.filter_by(id=int(attr_value)).first()
     elif attr == 'name' or attr == 'NAME':
@@ -67,21 +72,21 @@ def update_group(attr: str, attr_value: str) -> Response:
     if not group:
         resp = {"status": 404, "reason": "Группа не найдена"}
         return Response(response=json.dumps(resp, ensure_ascii=False), status=404, mimetype='application/json')
-    if not all(key in GROUPS_KEYS.keys() for key in request_keys):
+    if not all(key in GROUPS_KEYS.keys() for key in resp_keys):
         resp = {"status": 400, "reason": "Поля заполнены некорректно"}
         return Response(response=json.dumps(resp, ensure_ascii=False), status=400, mimetype='application/json')
-    for key in request_keys:
+    for key in resp_keys:
         if value[key] and (len(str(value[key])) > GROUPS_KEYS[key]):
             resp = {"status": 400, "reason": f"Поле {key} превышает максимально возможную длину строки"}
             return Response(response=json.dumps(resp, ensure_ascii=False), status=400, mimetype='application/json')
     try:
-        if "name" in request_keys:
-            group.fio = value["name"]
-        if "faculty" in request_keys:
+        if "name" in resp_keys:
+            group.name = value["name"]
+        if "faculty" in resp_keys:
             group.faculty = value["faculty"]
-        if "direction" in request_keys:
+        if "direction" in resp_keys:
             group.direction = value["direction"]
-        if "people_count" in request_keys:
+        if "people_count" in resp_keys:
             group.people_count = value["people_count"]
         db.session.commit()
         db.session.refresh(group)
@@ -100,4 +105,5 @@ def del_group(id: int) -> Response:
         return Response(response=json.dumps(resp, ensure_ascii=False), status=404, mimetype='application/json')
     Groups.query.filter_by(id=id).delete()
     db.session.commit()
-    return Response(response="Accepted", status=202, mimetype='application/json')
+    response_data = {"status": 202, "message": "Accepted"}
+    return Response(response=json.dumps(response_data, ensure_ascii=False), status=202, mimetype='application/json')
