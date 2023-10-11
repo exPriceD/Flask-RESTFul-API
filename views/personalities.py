@@ -17,7 +17,7 @@ def get_person() -> Response:
 
 
 @application.route('/api/v1/personalities/<string:attr>/<string:attr_value>/', methods=["GET"])
-def get_person_by_id(attr: str, attr_value: str) -> Response:
+def get_person_by_attr(attr: str, attr_value: str) -> Response:
     if attr not in KEYS:
         resp = {"status": 400, "reason": f"Атрибут {attr} не найден. Используйте атрибуты из списка: {KEYS}"}
         return Response(response=json.dumps(resp, ensure_ascii=False), status=400, mimetype="application/json")
@@ -109,4 +109,5 @@ def del_person(id: int) -> Response:
         return Response(response=json.dumps(resp, ensure_ascii=False), status=404, mimetype='application/json')
     Personalities.query.filter_by(id=id).delete()
     db.session.commit()
-    return Response(response="Accepted", status=202, mimetype='application/json')
+    response_data = {"status": 202, "message": "Accepted"}
+    return Response(response=json.dumps(response_data, ensure_ascii=False), status=202, mimetype='application/json')
