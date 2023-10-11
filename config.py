@@ -1,15 +1,19 @@
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from datetime import timedelta
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 application = Flask(__name__)
 application.config.from_object(__name__)
 
-application.secret_key = "8b5ad1a5811c417dfc5ca02f1eac1b17bae6a4f1859320bde495f74ab5d821db"
+application.secret_key = os.getenv("SECRET_KEY")
 application.permanent_session_lifetime = timedelta(days=365)
 
 application.config['UPLOAD_FOLDER'] = 'uploads'
-application.config['SQLALCHEMY_DATABASE_URI'] = "sqlite:///database.db"
+application.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("SQLALCHEMY_DATABASE_URI")
 application.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 application.config['JSON_AS_ASCII'] = False
 
@@ -27,4 +31,4 @@ SCHEDULE_LENGTH = {
     "group": 6, "day": 16, "even_week": 5, "subject": 64, "type": 32, "time_start": 5,
     "time_end": 5, "teacher_name": 128, "room": 32, "address": 512, "zoom_url": 1024
 }
-GROUPS_KEYS = {"name": 6, "faculty": 512, "direction": 512, "people_count": 100000}
+GROUPS_KEYS = {"name": 6, "faculty": 512, "direction": 512, "people_count": 1000}
