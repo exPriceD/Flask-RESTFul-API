@@ -39,9 +39,17 @@ def get_person_by_attr(attr: str, attr_value: str) -> Response:
 def add_person():
     value = request.json
     request_keys = value.keys()
-    if not all(key in PERSONALITIES_KEYS for key in request_keys):
+    if not all(key in request_keys for key in PERSONALITIES_KEYS):
         resp = {"status": 400, "reason": "Поля заполнены некорректно"}
         return Response(response=json.dumps(resp, ensure_ascii=False), status=400)
+    person_by_email = Personalities.query.filter_by(email=value["email"]).first()
+    person_by_phone = Personalities.query.filter_by(phone=value["phone"]).first()
+    if person_by_email:
+        resp = {'status': 400, "reason": "Персона с таким email уже существует"}
+        return Response(response=json.dumps(resp, ensure_ascii=False), status=400, mimetype='application/json')
+    if person_by_phone:
+        resp = {'status': 400, "reason": "Персона с таким номером телефона уже существует"}
+        return Response(response=json.dumps(resp, ensure_ascii=False), status=400, mimetype='application/json')
     if not validate_email(value["email"]):
         resp = {'status': 400, "reason": "Email not valid"}
         return Response(response=json.dumps(resp, ensure_ascii=False), status=400, mimetype='application/json')
